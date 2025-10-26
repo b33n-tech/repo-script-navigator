@@ -1,67 +1,40 @@
 import streamlit as st
 
-st.title("Checklist Repo GitHub Avancée")
+# Titre de l'app
+st.title("Checklist Repo GitHub Interactive")
 
-# Zone de texte pour coller la structure
+# Zone de texte pour coller la structure du repo
 repo_structure = st.text_area(
-    "Collez la structure du repo ici :",
+    "Collez ici la structure de votre repo (comme générée par GPT) :",
     height=300
 )
 
-def parse_structure_by_folder(structure_text):
+def parse_structure(structure_text):
     """
-    Transforme le texte de structure en dict {dossier: [fichiers]}.
-    Les fichiers hors dossier sont sous clé "root".
+    Parse le texte de structure de repo pour obtenir une liste plate de fichiers/dossiers.
     """
-    structure = {}
-    current_folder = "root"
-    structure[current_folder] = []
-    
+    items = []
     for line in structure_text.splitlines():
         line = line.strip()
         if line.startswith("├─") or line.startswith("└─"):
+            # Supprime les symboles graphiques et les commentaires
             clean_line = line[2:].split("←")[0].strip()
-            # Détecte si c'est un dossier
-            if clean_line.endswith("/"):
-                current_folder = clean_line[:-1]  # enlève le "/"
-                structure[current_folder] = []
-            else:
-                structure[current_folder].append(clean_line)
-    return structure
+            items.append(clean_line)
+    return items
 
 if repo_structure:
-    repo_dict = parse_structure_by_folder(repo_structure)
+    items = parse_structure(repo_structure)
     
-    st.subheader("Checklist interactive par dossier")
-    total_items = 0
-    total_done = 0
+    st.subheader("Checklist du repo")
+    checked_items = {}
     
-    for folder, files in repo_dict.items():
-        if folder != "root":
-            exp = st.expander(f"Dossier : {folder}", expanded=True)
-        else:
-            exp = st.container()
-        
-        folder_done = 0
-        folder_total = len(files)
-        
-        with exp:
-            for f in files:
-                key = f"{folder}_{f}"
-                checked = st.checkbox(f, key=key)
-                if checked:
-                    folder_done += 1
-        
-        # Affiche l'avancement par dossier
-        if folder_total > 0:
-            exp.progress(folder_done / folder_total)
-            exp.write(f"✅ {folder_done}/{folder_total} fichiers terminés")
-        
-        total_items += folder_total
-        total_done += folder_done
+    # Crée une case à cocher pour chaque item
+    for item in items:
+        checked_items[item] = st.checkbox(item, key=item)
     
-    # Avancement global
-    if total_items > 0:
-        st.subheader("Avancement global")
-        st.progress(total_done / total_items)
-        st.write(f"📊 {total_done}/{total_items} fichiers terminés dans tout le repo")
+    # Calcul de l'avancement
+    total = len(items)
+    done = sum(checked_items.values())
+    st.progress(done / total if total > 0 else 0)
+    
+    st.write(f"✅ {done}/{total} éléments terminés")
